@@ -1,62 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>USS Nationals Scoreboard</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: transparent;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-
-    .scoreboard {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      padding: 16px;
-      justify-content: center;
-    }
-
-    .athlete {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: 20px;
-      min-width: 200px;
-      text-align: center;
-    }
-  </style>
+    <title>USS Nationals 2025 - Top 10 Ticker</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: 'Impact', Arial, sans-serif;
+        }
+        .ticker-container {
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            position: relative;
+            background: rgba(0, 0, 0, 0.7); /* Semi-transparent for readability */
+            padding: 5px 0;
+            line-height: 1.2;
+        }
+        .ticker {
+            display: inline-block;
+            animation: scroll 40s linear infinite;
+        }
+        .division {
+            display: inline-block;
+            margin-right: 50px;
+            color: #ffffff;
+            font-size: 16px;
+        }
+        .division-name {
+            color: #ff4444;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .athlete {
+            margin-right: 15px;
+        }
+        .no-data {
+            color: #ff4444;
+            font-size: 16px;
+            padding: 5px;
+            white-space: nowrap;
+        }
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .ticker:hover {
+            animation-play-state: paused; /* Pause for debugging */
+        }
+    </style>
 </head>
 <body>
-  <div class="scoreboard" id="scoreboard">Loading...</div>
+    <div class="ticker-container">
+        <div class="ticker" id="ticker"></div>
+    </div>
+    <script>
+        // Fallback data from provided sample
+        const fallbackData = [
+            {"user_id":"u10161","name":"Landon Whitt","weightclass":"teen_mhw","overall_place":1,"total_points":29.5},
+            {"user_id":"u13440","name":"Jonathon McCleskey","weightclass":"teen_mhw","overall_place":2,"total_points":21},
+            {"user_id":"u15615","name":"Tristen Yingst","weightclass":"teen_mhw","overall_place":3,"total_points":21}
+        ];
 
-  <script>
-    async function loadScoreboard() {
-      try {
-        const proxy = 'https://corsproxy.io/?url=';
-        const endpoint = 'https://ironpodium.com/api/scoreboard/uss-nationals';
-        const response = await fetch(proxy + encodeURIComponent(endpoint));
-        const data = await response.json();
+        // Function to display ticker
+        function displayTicker(data) {
+            const divisions = {};
+            data.forEach(athlete => {
+                const div = athlete.weightclass || 'Unknown';
+                if (!divisions[div]) divisions[div] = [];
+                divisions[div].push(athlete);
+            });
 
-        const container = document.getElementById('scoreboard');
-        container.innerHTML = '';
+            for (let div in divisions) {
+                divisions[div].sort((a, b) => a.overall_place - b.overall_place);
+                divisions[div] = divisions[div].slice(0, 10);
+            }
 
-        data.scoreboard.forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'athlete';
-          div.innerHTML = `<strong>${entry.athlete_name}</strong><br>Total: ${entry.total}`;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        document.getElementById('scoreboard').textContent = 'Error loading scoreboard.';
-        console.error(err);
-      }
-    }
+            const ticker = document.getElementById('ticker');
+            ticker.innerHTML = '';
+            if (Object.keys(divisions).length === 0) {
+                ticker.innerHTML = '<span class="no-data">No scoreboard data available.</span>';
+                return;
+            }
 
-    loadScoreboard();
-    setInterval(loadScoreboard, 10000); // refresh every 10 seconds
-  </script>
+            for (let div in divisions) {
+                const divElement = document.createElement('div');
+                divElement.className = 'division';
+                const athletes = divisions[div].map(athlete => 
+                    `<span class="athlete">${athlete.overall_place}. ${athlete.name.trim()} - ${athlete.total_points} pts</span>`
+                ).join(', ');
+                divElement.innerHTML = `<span class="division-name">${div.replace('_', ' ').toUpperCase()}:</span> ${athletes}`;
+                ticker.appendChild(divElement);
+            }
+        }
+
+        // Function to fetch and update ticker
+        function fetchData() {
+            fetch('https://api.allorigins.win/raw?url=https://ironpodium.com/api/scoreboard/uss-nationals')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayTicker(data);
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error.message);
+                    const ticker = document.getElementById('ticker');
+                    ticker.innerHTML = '<span class="no-data">Failed to load live data: ' + error.message + '. Using sample data.</span>';
+                    displayTicker(fallbackData);
+                });
+        }
+
+        // Initial fetch
+        fetchData();
+        // Refresh every 10 seconds
+        setInterval(fetchData, 10000);
+    </script>
 </body>
 </html>
