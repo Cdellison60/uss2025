@@ -35,7 +35,9 @@
   <script>
     async function loadScoreboard() {
       try {
-        const response = await fetch('https://ironpodium.com/api/scoreboard/uss-nationals');
+        const proxy = 'https://corsproxy.io/?url=';
+        const endpoint = 'https://ironpodium.com/api/scoreboard/uss-nationals';
+        const response = await fetch(proxy + encodeURIComponent(endpoint));
         const data = await response.json();
 
         const container = document.getElementById('scoreboard');
@@ -54,7 +56,7 @@
     }
 
     loadScoreboard();
-    setInterval(loadScoreboard, 10000); // Refresh every 10 seconds
+    setInterval(loadScoreboard, 10000); // refresh every 10 seconds
   </script>
 </body>
 </html>
